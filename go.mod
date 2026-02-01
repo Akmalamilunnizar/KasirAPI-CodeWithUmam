@@ -3,7 +3,7 @@ module kasirApi
 go 1.24.5
 
 require (
-	github.com/lib/pq v1.11.1
+	github.com/lib/pq v1.10.9
 	github.com/spf13/viper v1.21.0
 )
 
