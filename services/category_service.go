@@ -1,8 +1,8 @@
 package services
 
 import (
-	"kasir-api/models"
-	"kasir-api/repositories"
+	"kasirApi/models"
+	"kasirApi/repositories"
 )
 
 type CategoryService struct {

@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"log"
 	
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
-func initDB(connectionString string) (*sql.DB, error)   {
+func InitDB(connectionString string) (*sql.DB, error)   {
 	// Open Database
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {

@@ -3,7 +3,7 @@ package repositories
 import (
 	"database/sql"
 	"errors"
-	"kasir-api/models"
+	"kasirApi/models"
 )
 
 type CategoryRepository struct {

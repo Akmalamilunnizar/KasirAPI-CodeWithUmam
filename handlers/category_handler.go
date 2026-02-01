@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
-	"kasir-api/models"
-	"kasir-api/services"
+	"kasirApi/models"
+	"kasirApi/services"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,8 +17,8 @@ func NewCategoryHandler(service *services.CategoryService) *CategoryHandler {
 	return &CategoryHandler{service: service}
 }
 
-// HandleCategorys - GET /api/produk
-func (h *CategoryHandler) HandleCategorys(w http.ResponseWriter, r *http.Request) {
+// HandleCategory - GET /api/produk
+func (h *CategoryHandler) HandleCategory(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		h.GetAll(w, r)
