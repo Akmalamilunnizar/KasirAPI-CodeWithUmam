@@ -34,13 +34,7 @@ func main() {
 		DBConn: viper.GetString("DB_CONN"),
 	}
 
-	addr := "0.0.0.0:" + config.Port
-	fmt.Println("Server running di", addr)
-
-	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		fmt.Println("gagal running server", err)
-	}
+	
 
 	// Setup database
 	db, err := database.InitDB(config.DBConn)
@@ -108,6 +102,14 @@ func main() {
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println("gagal running server")
+	}
+
+	addr := "0.0.0.0:" + config.Port
+	fmt.Println("Server running di", addr)
+
+	err = http.ListenAndServe(addr, nil)
+	if err != nil {
+		fmt.Println("gagal running server", err)
 	}
 }
 
