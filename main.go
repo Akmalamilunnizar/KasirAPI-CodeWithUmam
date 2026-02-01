@@ -18,9 +18,9 @@ import (
 )
 
 func main() {
-	// GET localhost:8080/api/categories/{id}
-	// PUT localhost:8080/api/categories/{id}
-	// DELETE localhost:8080/api/categories/{id}
+	// GET localhost:8080/api/Category/{id}
+	// PUT localhost:8080/api/Category/{id}
+	// DELETE localhost:8080/api/Category/{id}
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
@@ -51,40 +51,40 @@ func main() {
 	http.HandleFunc("/api/category", categoryHandler.HandleCategory)
 	http.HandleFunc("/api/category/", categoryHandler.HandleCategoryByID)
 
-	http.HandleFunc("/api/categories/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/Category/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			getCategoriesByID(w, r)
+			getCategoryByID(w, r)
 		} else if r.Method == "PUT" {
-			updateCategories(w, r)
+			updateCategory(w, r)
 		} else if r.Method == "DELETE" {
-			deleteCategories(w, r)
+			deleteCategory(w, r)
 		}
 
 	})
 
 	
 
-	// GET localhost:8080/api/categories
-	// POST localhost:8080/api/categories
-	// http.HandleFunc("/api/categories", func(w http.ResponseWriter, r *http.Request) {
+	// GET localhost:8080/api/Category
+	// POST localhost:8080/api/Category
+	// http.HandleFunc("/api/Category", func(w http.ResponseWriter, r *http.Request) {
 	// 	if r.Method == "GET" {
 	// 		w.Header().Set("Content-Type", "application/json")
-	// 		json.NewEncoder(w).Encode(categories)
+	// 		json.NewEncoder(w).Encode(Category)
 	// 	} else if r.Method == "POST" {
 	// 		// baca data from reqquest
-	// 		var categoriesBaru Category
-	// 		err := json.NewDecoder(r.Body).Decode(&categoriesBaru)
+	// 		var CategoryBaru Category
+	// 		err := json.NewDecoder(r.Body).Decode(&CategoryBaru)
 	// 		if err != nil {
 	// 			http.Error(w, "Invalid request", http.StatusBadRequest)
 	// 			return
 	// 		}
 
-	// 		// masukin data to variable categories
-	// 		categoriesBaru.ID = len(categories) + 1
-	// 		categories = append(categories, categoriesBaru)
+	// 		// masukin data to variable Category
+	// 		CategoryBaru.ID = len(Category) + 1
+	// 		Category = append(Category, CategoryBaru)
 	// 		w.Header().Set("Content-Type", "application/json")
 	// 		w.WriteHeader(http.StatusCreated) //Success or 201
-	// 		json.NewEncoder(w).Encode(categoriesBaru)
+	// 		json.NewEncoder(w).Encode(CategoryBaru)
 	// 	}
 
 	// })
@@ -118,21 +118,21 @@ type Config struct {
 	DBConn string `mapstructure:"DB_CONN"`
 }
 
-var categories = []models.Category{
+var Category = []models.Category{
 	{ID: 1, Name: "Makanan", Price: 5000, Stock: 15},
 	{ID: 2, Name: "Minuman", Price: 7000, Stock: 25},
 	{ID: 3, Name: "Camilan", Price: 3000, Stock: 30},
 }
 
-func getCategoriesByID(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/categories/")
+func getCategoryByID(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/Category/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid Categories ID", http.StatusBadRequest)
+		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
 		return
 	}
 
-	for _, p := range categories {
+	for _, p := range Category {
 		if p.ID == id {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(p)
@@ -140,59 +140,59 @@ func getCategoriesByID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	http.Error(w, "Categories belum ada", http.StatusNotFound)
+	http.Error(w, "Category belum ada", http.StatusNotFound)
 
 }
 
-func updateCategories(w http.ResponseWriter, r *http.Request) {
+func updateCategory(w http.ResponseWriter, r *http.Request) {
 	// get id dari request
 	idStr :=
-		strings.TrimPrefix(r.URL.Path, "/api/categories/")
+		strings.TrimPrefix(r.URL.Path, "/api/Category/")
 
 	// ganti int
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid Categories ID", http.StatusBadRequest)
+		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
 		return
 	}
 
 	//get data dari request
-	var updateCategories models.Category
-	err = json.NewDecoder(r.Body).Decode(&updateCategories)
+	var updateCategory models.Category
+	err = json.NewDecoder(r.Body).Decode(&updateCategory)
 	if err != nil {
 		http.Error(w, "Invalid Request", http.StatusBadRequest)
 		return
 
 	}
 
-	// loop categories, find id, change data type as requested
-	for i := range categories {
-		if categories[i].ID == id {
-			updateCategories.ID = id
-			categories[i] = updateCategories
+	// loop Category, find id, change data type as requested
+	for i := range Category {
+		if Category[i].ID == id {
+			updateCategory.ID = id
+			Category[i] = updateCategory
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(updateCategories)
+			json.NewEncoder(w).Encode(updateCategory)
 			return
 		}
 	}
-	http.Error(w, "Categories belum ada", http.StatusNotFound)
+	http.Error(w, "Category belum ada", http.StatusNotFound)
 }
 
-func deleteCategories(w http.ResponseWriter, r *http.Request) {
+func deleteCategory(w http.ResponseWriter, r *http.Request) {
 	// get id
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/categories/")
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/Category/")
 	//  ganti id to int
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid Categories ID", http.StatusBadRequest)
+		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
 		return
 	}
-	// loop categories cari ID, dapat index yg mau dihapus
-	for i, p := range categories {
+	// loop Category cari ID, dapat index yg mau dihapus
+	for i, p := range Category {
 		if p.ID == id {
 			// bikin slicec baru dengan data sebelum dan sesudah indexing
-			categories = append(categories[:i], categories[i+1:]...)
+			Category = append(Category[:i], Category[i+1:]...)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]string{
 				"message": "sukses delete",
@@ -201,5 +201,5 @@ func deleteCategories(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	http.Error(w, "Categories belum ada", http.StatusNotFound)
+	http.Error(w, "Category belum ada", http.StatusNotFound)
 }
