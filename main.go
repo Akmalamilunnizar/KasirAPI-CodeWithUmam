@@ -122,9 +122,9 @@ type Config struct {
 }
 
 var Category = []models.Category{
-	{ID: 1, Name: "Makanan", Price: 5000, Stock: 15},
-	{ID: 2, Name: "Minuman", Price: 7000, Stock: 25},
-	{ID: 3, Name: "Camilan", Price: 3000, Stock: 30},
+	{ID: 1, Name: "Makanan"},
+	{ID: 2, Name: "Minuman"},
+	{ID: 3, Name: "Camilan"},
 }
 
 func getCategoryByID(w http.ResponseWriter, r *http.Request) {
