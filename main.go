@@ -1,19 +1,19 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/spf13/viper"
+	"kasirApi/database"
 	"kasirApi/handlers"
 	"kasirApi/models"
 	"kasirApi/repositories"
 	"kasirApi/services"
-	"kasirApi/database"
-	"encoding/json"
-	"fmt"
-	"github.com/spf13/viper"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"log"
 	// "data"
 )
 
@@ -30,11 +30,9 @@ func main() {
 	}
 
 	config := Config{
-		Port: viper.GetString("PORT"),
+		Port:   viper.GetString("PORT"),
 		DBConn: viper.GetString("DB_CONN"),
 	}
-
-	
 
 	// Setup database
 	db, err := database.InitDB(config.DBConn)
@@ -46,7 +44,13 @@ func main() {
 	categoryRepo := repositories.NewCategoryRepository(db)
 	categoryService := services.NewCategoryService(categoryRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
-	
+	// Transaction
+	transactionRepo := repositories.NewTransactionRepository(db)
+	transactionService := services.NewTransactionService(transactionRepo)
+	transactionHandler := handlers.NewTransactionHandler(transactionService)
+
+	http.HandleFunc("/api/checkout", transactionHandler.HandleCheckout) // POST
+
 	// Setup routes
 	http.HandleFunc("/api/category", categoryHandler.HandleCategory)
 	http.HandleFunc("/api/category/", categoryHandler.HandleCategoryByID)
@@ -61,8 +65,6 @@ func main() {
 		}
 
 	})
-
-	
 
 	// GET localhost:8080/api/Category
 	// POST localhost:8080/api/Category
