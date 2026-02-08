@@ -17,6 +17,7 @@ type TransactionRepository interface {
 	Delete(id int) error
 	// Checkout(items []models.CheckoutItem, useLock bool) (*models.Transaction, error)
 	CreateTransaction(items []models.CheckoutItem) (*models.Transaction, error)
+	GetSalesReport(startDate, endDate string) (*models.SalesReport, error)
 }
 
 func NewTransactionRepository(db *sql.DB) TransactionRepository {
