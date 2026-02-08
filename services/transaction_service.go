@@ -36,3 +36,8 @@ func (s *TransactionService) Delete(id int) error {
 func (s *TransactionService) Checkout(items []models.CheckoutItem, useLock bool) (*models.Transaction, error)  {
 	return s.repo.CreateTransaction(items)
 }
+
+func (s *TransactionService) GetSalesReport(startDate, endDate string) (*models.SalesReport, error) {
+    // Service acts as a bridge here
+    return s.repo.GetSalesReport(startDate, endDate)
+}

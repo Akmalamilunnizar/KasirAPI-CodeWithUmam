@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"kasirApi/models"
 	"kasirApi/services"
@@ -63,7 +64,7 @@ func (h *TransactionHandler) GetReport(w http.ResponseWriter, r *http.Request) {
 
 	// Panggil Service/Repo
 	// (Anggap kamu langsung panggil repo di sini, idealnya lewat Service dulu)
-	report, err := h.repo.GetSalesReport(startDate, endDate)
+	report, err := h.service.GetSalesReport(startDate, endDate)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
