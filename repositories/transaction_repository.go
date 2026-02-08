@@ -96,26 +96,103 @@ func (repo *transactionRepository) CreateTransaction(items []models.CheckoutItem
 		return nil, err
 	}
 
-	for i := range details {
-		details[i].TransactionID = transactionID
-		_, err = tx.Exec("INSERT INTO transaction_details (transaction_id, product_id, quantity, subtotal) VALUES ($1, $2, $3, $4)",
-			transactionID, details[i].ProductID, details[i].Quantity, details[i].Subtotal)
+	if len(details) > 0 {
+		query := "INSERT INTO transaction_details (transaction_id, product_id, quantity, subtotal) VALUES "
+		var args []interface{}
+
+		// loop
+		for i, d := range details {
+			d.TransactionID = transactionID
+			n := i * 4
+			// Rumus posisi parameter:
+			// Baris 1: $1, $2, $3, $4
+			// Baris 2: $5, $6, $7, $8
+
+			// placeholder ke string query
+			query += fmt.Sprintf("($%d, $%d, $%d, $%d)", n+1, n+2, n+3, n+4)
+
+			// masukan ke slice artgs
+			args = append(args, d.TransactionID, d.ProductID, d.Quantity, d.Subtotal)
+
+		}
+
+		query = query[:len(query)-1]
+
+		_, err = tx.Exec(query, args...)
 		if err != nil {
 			return nil, err
 		}
 	}
+	// old ways
+	// for i := range details {
+	// 	details[i].TransactionID = transactionID
+	// 	_, err = tx.Exec("INSERT INTO transaction_details (transaction_id, product_id, quantity, subtotal) VALUES ($1, $2, $3, $4)",
+	// 		transactionID, details[i].ProductID, details[i].Quantity, details[i].Subtotal)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
-	if err := tx.Commit();  err != nil{
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
+	// Update TransactionID di object return agar frontend dapat ID yang benar OPTIONAL NEXT
+	// for i := range details {
+	//     details[i].TransactionID = transactionID
+	// }
+
 	return &models.Transaction{
-		ID: transactionID,
+		ID:          transactionID,
 		TotalAmount: totalAmount,
-		Details: details,
+		Details:     details,
 	}, nil
 }
 
+func (r *transactionRepository) GetSalesReport(startDate, endDate string) (*models.SalesReport, error) {
+	var report models.SalesReport
+
+	// 1. Query Total Revenue & Total Transaksi
+	// Gunakan COALESCE agar jika tidak ada data, hasilnya 0 (bukan NULL error)
+	queryStats := `
+		SELECT 
+			COALESCE(SUM(total_amount), 0), 
+			COUNT(id)
+		FROM transactions 
+		WHERE created_at >= $1 AND created_at <= $2`
+
+	err := r.db.QueryRow(queryStats, startDate, endDate).Scan(&report.TotalRevenue, &report.TotalTransaksi)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Query Produk Terlaris (Top 1)
+	// Kita join transaction_details ke products, lalu filter berdasarkan tanggal transaksi
+	queryTopProduct := `
+		SELECT 
+			p.name, 
+			COALESCE(SUM(td.quantity), 0) as total_qty
+		FROM transaction_details td
+		JOIN products p ON td.product_id = p.id
+		JOIN transactions t ON td.transaction_id = t.id
+		WHERE t.created_at >= $1 AND t.created_at <= $2
+		GROUP BY p.name
+		ORDER BY total_qty DESC
+		LIMIT 1`
+
+	err = r.db.QueryRow(queryTopProduct, startDate, endDate).Scan(&report.ProdukTerlaris.Nama, &report.ProdukTerlaris.QtyTerjual)
+
+	// Handle kasus jika tidak ada penjualan sama sekali (sql.ErrNoRows)
+	if err != nil {
+		// Jika errornya bukan NoRows, return error beneran
+		if err.Error() != "sql: no rows in result set" {
+			// Kalau belum ada penjualan, set default strip/0 biar gak error
+			report.ProdukTerlaris = models.ProductBestSeller{Nama: "-", QtyTerjual: 0}
+		}
+	}
+
+	return &report, nil
+}
 
 func (repo *transactionRepository) Delete(id int) error {
 	query := "DELETE FROM transaction WHERE id = $1"
