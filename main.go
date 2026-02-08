@@ -135,6 +135,7 @@ func getCategoryByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// membaca slice dari ram
 	for _, p := range Category {
 		if p.ID == id {
 			w.Header().Set("Content-Type", "application/json")
