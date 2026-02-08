@@ -75,10 +75,14 @@ func (repo *transactionRepository) CreateTransaction(items []models.CheckoutItem
 			return nil, err
 		}
 
+		if stock < item.Quantity {
+			return nil, fmt.Errorf("stok kurang for product %s", productName)
+		}
+
 		subtotal := productPrice * item.Quantity
 		totalAmount += subtotal
 
-		_, err = tx.Exec("UPDATE products SET stock = stock - $1 WHERE id $2", item.Quantity, item.ProductID)
+		_, err = tx.Exec("UPDATE products SET stock = stock - $1 WHERE id = $2", item.Quantity, item.ProductID)
 		if err != nil {
 			return nil, err
 		}
@@ -110,10 +114,11 @@ func (repo *transactionRepository) CreateTransaction(items []models.CheckoutItem
 			// Baris 2: $5, $6, $7, $8
 
 			// placeholder ke string query
-			query += fmt.Sprintf("($%d, $%d, $%d, $%d)", n+1, n+2, n+3, n+4)
+			query += fmt.Sprintf("($%d, $%d, $%d, $%d),", n+1, n+2, n+3, n+4)
 
 			// masukan ke slice artgs
 			args = append(args, d.TransactionID, d.ProductID, d.Quantity, d.Subtotal)
+			args = append(args, transactionID, d.ProductID, d.Quantity, d.Subtotal)
 
 		}
 
