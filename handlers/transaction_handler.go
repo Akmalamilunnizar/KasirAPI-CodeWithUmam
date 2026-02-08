@@ -21,7 +21,7 @@ func NewTransactionHandler(service *services.TransactionService) *TransactionHan
 func (h *TransactionHandler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		h.HandleCheckout(w, r)
+		h.Checkout(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}

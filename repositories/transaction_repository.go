@@ -67,7 +67,7 @@ func (repo *transactionRepository) CreateTransaction(items []models.CheckoutItem
 		var productPrice, stock int
 		var productName string
 
-		err := tx.QueryRow("SELECT name, price, stock FROM products WHERE id = $1", item.ProductID).Scan(&productName, &productPrice, &stock)
+		err := tx.QueryRow("SELECT name, price, stock FROM produk WHERE id = $1", item.ProductID).Scan(&productName, &productPrice, &stock)
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("product id %d not found", item.ProductID)
 		}
@@ -82,7 +82,7 @@ func (repo *transactionRepository) CreateTransaction(items []models.CheckoutItem
 		subtotal := productPrice * item.Quantity
 		totalAmount += subtotal
 
-		_, err = tx.Exec("UPDATE products SET stock = stock - $1 WHERE id = $2", item.Quantity, item.ProductID)
+		_, err = tx.Exec("UPDATE produk SET stock = stock - $1 WHERE id = $2", item.Quantity, item.ProductID)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func (repo *transactionRepository) CreateTransaction(items []models.CheckoutItem
 			query += fmt.Sprintf("($%d, $%d, $%d, $%d),", n+1, n+2, n+3, n+4)
 
 			// masukan ke slice artgs
-			args = append(args, d.TransactionID, d.ProductID, d.Quantity, d.Subtotal)
+			// args = append(args, d.TransactionID, d.ProductID, d.Quantity, d.Subtotal)
 			args = append(args, transactionID, d.ProductID, d.Quantity, d.Subtotal)
 
 		}
@@ -173,13 +173,13 @@ func (r *transactionRepository) GetSalesReport(startDate, endDate string) (*mode
 	}
 
 	// 2. Query Produk Terlaris (Top 1)
-	// Kita join transaction_details ke products, lalu filter berdasarkan tanggal transaksi
+	// Kita join transaction_details ke produk, lalu filter berdasarkan tanggal transaksi
 	queryTopProduct := `
 		SELECT 
 			p.name, 
 			COALESCE(SUM(td.quantity), 0) as total_qty
 		FROM transaction_details td
-		JOIN products p ON td.product_id = p.id
+		JOIN produk p ON td.product_id = p.id
 		JOIN transactions t ON td.transaction_id = t.id
 		WHERE t.created_at >= $1 AND t.created_at <= $2
 		GROUP BY p.name
