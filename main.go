@@ -54,7 +54,10 @@ func main() {
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
 
 	http.HandleFunc("/api/checkout", transactionHandler.HandleCheckout) // POST
+	// for general and specified date report
+	http.HandleFunc("/api/report", transactionHandler.GetReport)
 	http.HandleFunc("/api/report/hari-ini", transactionHandler.GetReport)
+	
 
 	// Setup routes
 	http.HandleFunc("/api/category", categoryHandler.HandleCategory)
