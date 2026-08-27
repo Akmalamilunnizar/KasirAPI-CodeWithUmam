@@ -1,26 +1,19 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/spf13/viper"
-	"kasirApi/database"
-	"kasirApi/handlers"
-	"kasirApi/models"
-	"kasirApi/repositories"
-	"kasirApi/services"
 	"log"
-	"net/http"
 	"os"
-	"strconv"
 	"strings"
-	// "data"
+
+	"kasirApi/config"
+	"kasirApi/routes"
+
+	"github.com/spf13/viper"
 )
 
 func main() {
-	// GET localhost:8080/api/Category/{id}
-	// PUT localhost:8080/api/Category/{id}
-	// DELETE localhost:8080/api/Category/{id}
+	// Setup Viper configuration
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
@@ -29,191 +22,37 @@ func main() {
 		_ = viper.ReadInConfig()
 	}
 
-	config := Config{
-		Port:   viper.GetString("PORT"),
-		DBConn: viper.GetString("DB_CONN"),
+	port := viper.GetString("PORT")
+	if port == "" {
+		port = "8080"
 	}
 
-	// Setup database
-	db, err := database.InitDB(config.DBConn)
+	dbDriver := viper.GetString("DB_DRIVER")
+	if dbDriver == "" {
+		dbDriver = "mysql"
+	}
+
+	dbConn := viper.GetString("DB_CONN")
+	if dbConn == "" {
+		dbConn = "root:@tcp(127.0.0.1:3306)/toko_pertanian?parseTime=true&multiStatements=true"
+	}
+
+	// Initialize Database (GORM + Connection Pool + AutoMigrate + Seed)
+	log.Printf("[SERVER] Initializing database (driver: %s)...\n", dbDriver)
+	_, err := config.InitDatabase(dbConn, dbDriver)
 	if err != nil {
-		log.Fatal("Failed to initialze database", err)
-	}
-	defer db.Close()
-
-	categoryRepo := repositories.NewCategoryRepository(db)
-	categoryService := services.NewCategoryService(categoryRepo)
-	categoryHandler := handlers.NewCategoryHandler(categoryService)
-	// Produk
-	produkRepo := repositories.NewProdukRepository(db)
-	produkService := services.NewProdukService(produkRepo)
-	produkHandler := handlers.NewProdukHandler(produkService)
-	// Transaction
-	transactionRepo := repositories.NewTransactionRepository(db)
-	transactionService := services.NewTransactionService(transactionRepo)
-	transactionHandler := handlers.NewTransactionHandler(transactionService)
-
-	http.HandleFunc("/api/checkout", transactionHandler.HandleCheckout) // POST
-	// for general and specified date report
-	http.HandleFunc("/api/report", transactionHandler.GetReport)
-	http.HandleFunc("/api/report/hari-ini", transactionHandler.GetReport)
-	
-
-	// Setup routes
-	http.HandleFunc("/api/category", categoryHandler.HandleCategory)
-	http.HandleFunc("/api/category/", categoryHandler.HandleCategoryByID)
-
-	http.HandleFunc("/api/produk", produkHandler.HandleProduk)
-	http.HandleFunc("/api/produk/", produkHandler.HandleProdukByID)
-
-	http.HandleFunc("/api/Category/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			getCategoryByID(w, r)
-		} else if r.Method == "PUT" {
-			updateCategory(w, r)
-		} else if r.Method == "DELETE" {
-			deleteCategory(w, r)
-		}
-
-	})
-
-	// GET localhost:8080/api/Category
-	// POST localhost:8080/api/Category
-	// http.HandleFunc("/api/Category", func(w http.ResponseWriter, r *http.Request) {
-	// 	if r.Method == "GET" {
-	// 		w.Header().Set("Content-Type", "application/json")
-	// 		json.NewEncoder(w).Encode(Category)
-	// 	} else if r.Method == "POST" {
-	// 		// baca data from reqquest
-	// 		var CategoryBaru Category
-	// 		err := json.NewDecoder(r.Body).Decode(&CategoryBaru)
-	// 		if err != nil {
-	// 			http.Error(w, "Invalid request", http.StatusBadRequest)
-	// 			return
-	// 		}
-
-	// 		// masukin data to variable Category
-	// 		CategoryBaru.ID = len(Category) + 1
-	// 		Category = append(Category, CategoryBaru)
-	// 		w.Header().Set("Content-Type", "application/json")
-	// 		w.WriteHeader(http.StatusCreated) //Success or 201
-	// 		json.NewEncoder(w).Encode(CategoryBaru)
-	// 	}
-
-	// })
-
-	// localhost:8080/health
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "OK",
-			"message": "API Running",
-		})
-	})
-	fmt.Println("Server running di localhost:8080")
-
-	// err = http.ListenAndServe(":8080", nil)
-	// if err != nil {
-	// 	fmt.Println("gagal running server")
-	// }
-
-	addr := "0.0.0.0:" + config.Port
-	fmt.Println("Server running di", addr)
-
-	err = http.ListenAndServe(addr, nil)
-	if err != nil {
-		fmt.Println("gagal running server", err)
-	}
-}
-
-type Config struct {
-	Port   string `mapstructure:"PORT"`
-	DBConn string `mapstructure:"DB_CONN"`
-}
-
-var Category = []models.Category{
-	{ID: 1, Name: "Makanan"},
-	{ID: 2, Name: "Minuman"},
-	{ID: 3, Name: "Camilan"},
-}
-
-func getCategoryByID(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/Category/")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
-		return
+		log.Fatalf("[SERVER] Database initialization failed: %v", err)
 	}
 
-	// membaca slice dari ram
-	for _, p := range Category {
-		if p.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(p)
-			return
-		}
+	// Setup Gin Engine and Routes
+	r := routes.SetupRouter()
+
+	addr := ":" + port
+	fmt.Println("=======================================================")
+	fmt.Printf("🌱 AgriStock Backend API running on http://localhost:%s\n", port)
+	fmt.Println("=======================================================")
+
+	if err := r.Run(addr); err != nil {
+		log.Fatalf("[SERVER] Failed to run server: %v", err)
 	}
-
-	http.Error(w, "Category belum ada", http.StatusNotFound)
-
-}
-
-func updateCategory(w http.ResponseWriter, r *http.Request) {
-	// get id dari request
-	idStr :=
-		strings.TrimPrefix(r.URL.Path, "/api/Category/")
-
-	// ganti int
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
-		return
-	}
-
-	//get data dari request
-	var updateCategory models.Category
-	err = json.NewDecoder(r.Body).Decode(&updateCategory)
-	if err != nil {
-		http.Error(w, "Invalid Request", http.StatusBadRequest)
-		return
-
-	}
-
-	// loop Category, find id, change data type as requested
-	for i := range Category {
-		if Category[i].ID == id {
-			updateCategory.ID = id
-			Category[i] = updateCategory
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(updateCategory)
-			return
-		}
-	}
-	http.Error(w, "Category belum ada", http.StatusNotFound)
-}
-
-func deleteCategory(w http.ResponseWriter, r *http.Request) {
-	// get id
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/Category/")
-	//  ganti id to int
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid Category ID", http.StatusBadRequest)
-		return
-	}
-	// loop Category cari ID, dapat index yg mau dihapus
-	for i, p := range Category {
-		if p.ID == id {
-			// bikin slicec baru dengan data sebelum dan sesudah indexing
-			Category = append(Category[:i], Category[i+1:]...)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"message": "sukses delete",
-			})
-
-			return
-		}
-	}
-	http.Error(w, "Category belum ada", http.StatusNotFound)
 }
